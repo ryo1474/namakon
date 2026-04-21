@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>生コン受注</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ===== ベース ===== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -157,16 +159,48 @@ select{
 .extra{display:none;margin-top:12px}
 .extra.on{display:block}
 
-/* ===== 位置情報ボタン ===== */
-.btn-loc{
-  width:100%;padding:11px;margin-top:8px;
+/* ===== マップ ===== */
+.map-wrap{
+  border-radius:12px;
+  overflow:hidden;
+  border:1.5px solid #E5E7EA;
+  margin-bottom:10px;
+  position:relative;
+}
+#map{height:220px;width:100%}
+.map-hint{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);color:#fff;
+  font-size:12px;padding:5px 12px;border-radius:20px;
+  pointer-events:none;z-index:1000;white-space:nowrap;
+}
+.map-center-pin{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%, -100%);
+  font-size:28px;
+  pointer-events:none;
+  z-index:1000;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+}
+.btn-myloc{
+  width:100%;padding:11px;
   border-radius:10px;border:1.5px solid #06C755;
   background:none;color:#06C755;
   font-size:14px;font-weight:600;
   cursor:pointer;font-family:inherit;
   transition:background .12s;
+  margin-bottom:8px;
 }
-.btn-loc:active{background:#e8faf0}
+.btn-myloc:active{background:#e8faf0}
+.addr-confirm{
+  font-size:12px;color:#555;
+  background:#F0FBF5;border:1px solid #B2DFC0;
+  border-radius:8px;padding:8px 12px;
+  margin-top:6px;display:none;
+  line-height:1.6;
+}
+.addr-confirm.on{display:block}
 
 /* ===== 送信ボタン ===== */
 .submit-bar{
@@ -290,9 +324,24 @@ select{
   <div class="card">
     <div class="card-title">現場住所</div>
     <div class="field">
-      <input type="text" id="k-address" placeholder="例: 浜松市中区板屋町111-2">
+      <div class="label">住所 <span class="req">必須</span></div>
+      <input type="text" id="k-address" placeholder="例: 浜松市中区板屋町111-2" oninput="onAddressInput(this.value)">
     </div>
-    <button class="btn-loc" onclick="getLocation('k-address')">📍 現在地から住所を取得</button>
+    <!-- オートコンプリート候補 -->
+    <div id="addr-suggestions" style="display:none;background:#fff;border:1.5px solid #E5E7EA;border-radius:10px;overflow:hidden;margin-top:-8px;margin-bottom:10px;"></div>
+
+    <!-- マップ -->
+    <div class="map-wrap">
+      <div class="map-hint">📍 ピンをドラッグして位置を調整</div>
+      <div class="map-center-pin" id="map-center-pin">📍</div>
+      <div id="map"></div>
+    </div>
+
+    <!-- 現在地ボタン -->
+    <button class="btn-myloc" onclick="goMyLocation()">🔵 現在地に移動</button>
+
+    <!-- 確定住所表示 -->
+    <div class="addr-confirm" id="addr-confirm"></div>
   </div>
 </div>
 
@@ -418,10 +467,10 @@ select{
 
 <script>
 // ============================================================
-// 設定 — ここだけ自分の値に変える
+// 設定
 // ============================================================
-const LIFF_ID = "2009848104-9rxJkZkA";       // LINE DevelopersのLIFF ID
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyMc1GHyNYu-YxEGiK5y9D3qCHlB8_f50o1XBdmc8rqa24G3_n_GN4hpK4lQ2BGKXMI/exec"; // GAS WebアプリのURL
+const LIFF_ID = "2009848104-9rxJkZkA";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzL5O2n17ihLqG8i8RtDkwfllymPQPpJezDNpLnN_Kqo-eGUGo5x0iivt5pwOoAwaBX/exec";
 
 // ============================================================
 // 状態
@@ -431,6 +480,13 @@ let currentTab  = "kozi";
 let qty         = 3.0;
 let selectedSite   = null;
 let selectedKanryo = null;
+
+// マップ関連
+let map        = null;
+let mapInited  = false;
+let geocodeTimer = null;
+let lastLat    = 34.7108;  // 浜松市デフォルト
+let lastLng    = 137.7261;
 
 // ============================================================
 // 初期化
@@ -445,11 +501,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     userId = profile.userId;
     document.getElementById("header-sub").textContent = profile.displayName;
 
-    // URLパラメータでタブ初期指定
     const mode = new URLSearchParams(location.search).get("mode") || "kozi";
     setupChips();
     loadStaffs();
-
     switchTab(mode);
   } catch (err) {
     toast("初期化に失敗しました");
@@ -473,6 +527,8 @@ function switchTab(tab) {
   if (tab === "kozi") {
     btn.textContent = "工事を登録する";
     btn.className   = "btn-submit";
+    // マップ初期化（少し遅延させてDOM確定後に）
+    setTimeout(initMap, 100);
   } else if (tab === "yoyaku") {
     btn.textContent = "予約を送信する";
     btn.className   = "btn-submit";
@@ -482,6 +538,129 @@ function switchTab(tab) {
     btn.className   = "btn-submit red";
     loadKanryoList();
   }
+}
+
+// ============================================================
+// OpenStreetMapマップ初期化
+// ============================================================
+function initMap() {
+  if (mapInited) return;
+  mapInited = true;
+
+  map = L.map('map', {
+    center: [lastLat, lastLng],
+    zoom: 15,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(map);
+
+  // マップ移動終了時に逆ジオコーディング
+  map.on('moveend', onMapMoveEnd);
+  map.on('dragstart', () => {
+    document.getElementById('map-center-pin').style.transform = 'translate(-50%, -120%)';
+  });
+  map.on('dragend', () => {
+    document.getElementById('map-center-pin').style.transform = 'translate(-50%, -100%)';
+  });
+
+  // 初期住所取得
+  reverseGeocode(lastLat, lastLng);
+}
+
+function onMapMoveEnd() {
+  const c = map.getCenter();
+  lastLat = c.lat;
+  lastLng = c.lng;
+  reverseGeocode(c.lat, c.lng);
+}
+
+// 逆ジオコーディング（座標→住所）
+async function reverseGeocode(lat, lng) {
+  try {
+    const res  = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`
+    );
+    const data = await res.json();
+    if (data.address) {
+      const addr = [
+        data.address.prefecture,
+        data.address.city || data.address.town || data.address.village,
+        data.address.suburb || data.address.neighbourhood,
+        data.address.road,
+        data.address.house_number,
+      ].filter(Boolean).join("");
+
+      document.getElementById("k-address").value = addr;
+      const confirmEl = document.getElementById("addr-confirm");
+      confirmEl.textContent = "📍 " + addr;
+      confirmEl.classList.add("on");
+    }
+  } catch { /* 失敗しても続行 */ }
+}
+
+// 住所入力→フォワードジオコーディング（住所→座標）
+function onAddressInput(value) {
+  clearTimeout(geocodeTimer);
+  if (!value || value.length < 4) {
+    document.getElementById("addr-suggestions").style.display = "none";
+    return;
+  }
+  geocodeTimer = setTimeout(() => forwardGeocode(value), 600);
+}
+
+async function forwardGeocode(query) {
+  try {
+    const res  = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp&limit=4&accept-language=ja`
+    );
+    const data = await res.json();
+    renderSuggestions(data);
+  } catch { /* 失敗しても続行 */ }
+}
+
+function renderSuggestions(results) {
+  const el = document.getElementById("addr-suggestions");
+  if (!results.length) { el.style.display = "none"; return; }
+
+  el.style.display = "block";
+  el.innerHTML = results.map((r, i) => `
+    <div onclick="selectSuggestion(${r.lat},${r.lon},'${esc(r.display_name)}')"
+      style="padding:11px 13px;font-size:14px;border-bottom:1px solid #F0F0F0;cursor:pointer;color:#1A1A1A;"
+      ontouchstart="this.style.background='#F0FBF5'" ontouchend="this.style.background=''">
+      ${esc(r.display_name.replace(/, 日本$/, "").replace(/,/g, " "))}
+    </div>`).join("");
+}
+
+function selectSuggestion(lat, lon, displayName) {
+  document.getElementById("addr-suggestions").style.display = "none";
+  const shortAddr = displayName.replace(/, 日本$/, "").split(",")[0];
+  document.getElementById("k-address").value = shortAddr;
+  const confirmEl = document.getElementById("addr-confirm");
+  confirmEl.textContent = "📍 " + shortAddr;
+  confirmEl.classList.add("on");
+  if (map) {
+    lastLat = parseFloat(lat);
+    lastLng = parseFloat(lon);
+    map.setView([lastLat, lastLng], 17);
+  }
+}
+
+// 現在地に移動
+function goMyLocation() {
+  if (!navigator.geolocation) { toast("位置情報に対応していません"); return; }
+  loading(true, "現在地を取得中...");
+  navigator.geolocation.getCurrentPosition(pos => {
+    loading(false);
+    const { latitude: lat, longitude: lng } = pos.coords;
+    lastLat = lat; lastLng = lng;
+    if (map) map.setView([lat, lng], 17);
+    reverseGeocode(lat, lng);
+    toast("現在地に移動しました");
+  }, () => { loading(false); toast("位置情報の取得を許可してください"); });
 }
 
 // ============================================================
@@ -611,31 +790,6 @@ function toggleSpecTime() {
 }
 
 // ============================================================
-// 位置情報取得
-// ============================================================
-function getLocation(targetId) {
-  if (!navigator.geolocation) { toast("位置情報に対応していません"); return; }
-  loading(true, "位置情報を取得中...");
-  navigator.geolocation.getCurrentPosition(async pos => {
-    try {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      const res  = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`
-      );
-      const data = await res.json();
-      document.getElementById(targetId).value =
-        data.address
-          ? [data.address.prefecture, data.address.city, data.address.road, data.address.house_number]
-              .filter(Boolean).join("")
-          : data.display_name;
-      toast("住所を取得しました");
-    } catch {
-      toast("住所の変換に失敗しました");
-    } finally { loading(false); }
-  }, () => { loading(false); toast("位置情報の取得を許可してください"); });
-}
-
-// ============================================================
 // 送信
 // ============================================================
 async function handleSubmit() {
@@ -650,17 +804,19 @@ async function submitKozi() {
   const staff    = val("k-staff");
   const person   = val("k-person");
   const phone    = val("k-phone");
+  const address  = val("k-address");
   if (!siteName) { toast("現場名を入力してください"); return; }
   if (!company)  { toast("会社名を入力してください"); return; }
   if (!staff)    { toast("担当者を選択してください"); return; }
   if (!person)   { toast("現場担当者名を入力してください"); return; }
   if (!phone)    { toast("電話番号を入力してください"); return; }
+  if (!address)  { toast("現場住所を入力してください"); return; }
 
   await post({
     formType:   "kozi",
     userId, siteName, company, staff,
     sitePerson: person, phone,
-    address: val("k-address"),
+    address,
   }, "工事登録が完了しました！");
 }
 
