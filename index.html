@@ -321,27 +321,17 @@ select{
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">現場住所</div>
-    <div class="field">
-      <div class="label">住所 <span class="req">必須</span></div>
-      <input type="text" id="k-address" placeholder="例: 浜松市中区板屋町111-2" oninput="onAddressInput(this.value)">
+  <div class="card" style="background:#F0FBF5;border:1.5px solid #B2DFC0;">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <span style="font-size:28px;line-height:1;">📍</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;">住所はLINEマップで登録します</div>
+        <div style="font-size:12px;color:#555;line-height:1.7;">
+          送信後にLINEチャットへ自動で戻ります。<br>
+          Botのメッセージに従って位置情報を送ってください。
+        </div>
+      </div>
     </div>
-    <!-- オートコンプリート候補 -->
-    <div id="addr-suggestions" style="display:none;background:#fff;border:1.5px solid #E5E7EA;border-radius:10px;overflow:hidden;margin-top:-8px;margin-bottom:10px;"></div>
-
-    <!-- マップ -->
-    <div class="map-wrap">
-      <div class="map-hint">📍 ピンをドラッグして位置を調整</div>
-      <div class="map-center-pin" id="map-center-pin">📍</div>
-      <div id="map"></div>
-    </div>
-
-    <!-- 現在地ボタン -->
-    <button class="btn-myloc" onclick="goMyLocation()">🔵 現在地に移動</button>
-
-    <!-- 確定住所表示 -->
-    <div class="addr-confirm" id="addr-confirm"></div>
   </div>
 </div>
 
@@ -837,20 +827,18 @@ async function submitKozi() {
   const staff    = val("k-staff");
   const person   = val("k-person");
   const phone    = val("k-phone");
-  const address  = val("k-address");
   if (!siteName) { toast("現場名を入力してください"); return; }
   if (!company)  { toast("会社名を入力してください"); return; }
   if (!staff)    { toast("担当者を選択してください"); return; }
   if (!person)   { toast("現場担当者名を入力してください"); return; }
   if (!phone)    { toast("電話番号を入力してください"); return; }
-  if (!address)  { toast("現場住所を入力してください"); return; }
 
   await post({
     formType:   "kozi",
     userId, siteName, company, staff,
     sitePerson: person, phone,
-    address,
-  }, "工事登録が完了しました！");
+    address:    "", // 住所はLINEマップで後から登録
+  }, "登録しました！LINEに戻って位置情報を送ってください📍");
 }
 
 async function submitYoyaku() {
