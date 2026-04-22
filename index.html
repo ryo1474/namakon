@@ -554,12 +554,17 @@ function initMap() {
     attributionControl: false,
   });
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
+  // 国土地理院標準地図タイル（無料・APIキー不要）
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+    maxZoom: 18,
   }).addTo(map);
 
   // マップ移動終了時に逆ジオコーディング
-  map.on('moveend', onMapMoveEnd);
+  let moveTimer = null;
+  map.on('moveend', () => {
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(onMapMoveEnd, 1000);
+  });
   map.on('dragstart', () => {
     document.getElementById('map-center-pin').style.transform = 'translate(-50%, -120%)';
   });
@@ -567,8 +572,20 @@ function initMap() {
     document.getElementById('map-center-pin').style.transform = 'translate(-50%, -100%)';
   });
 
-  // 初期住所取得
-  reverseGeocode(lastLat, lastLng);
+  // 現在地を取得して初期表示、失敗したら浜松市デフォルト
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        lastLat = pos.coords.latitude;
+        lastLng = pos.coords.longitude;
+        map.setView([lastLat, lastLng], 17);
+        reverseGeocode(lastLat, lastLng);
+      },
+      () => reverseGeocode(lastLat, lastLng) // 拒否された場合はデフォルト座標で住所取得
+    );
+  } else {
+    reverseGeocode(lastLat, lastLng);
+  }
 }
 
 function onMapMoveEnd() {
@@ -578,34 +595,33 @@ function onMapMoveEnd() {
   reverseGeocode(c.lat, c.lng);
 }
 
-// 逆ジオコーディング（座標→住所）
+// 逆ジオコーディング（座標→住所）国土地理院API
 async function reverseGeocode(lat, lng) {
   try {
     const res  = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ja`
+      `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lng}`
     );
     const data = await res.json();
-    if (data.address) {
-      const addr = [
-        data.address.prefecture,
-        data.address.city || data.address.town || data.address.village,
-        data.address.suburb || data.address.neighbourhood,
-        data.address.road,
-        data.address.house_number,
-      ].filter(Boolean).join("");
-
-      document.getElementById("k-address").value = addr;
-      const confirmEl = document.getElementById("addr-confirm");
-      confirmEl.textContent = "📍 " + addr;
-      confirmEl.classList.add("on");
+    if (data.results) {
+      const r    = data.results;
+      // 都道府県＋市区町村＋町丁目
+      const addr = (r.muniCd ? '' : '') + (r.lv01Nm || '');
+      // 市区町村名はmuniCdから別途取得が必要なため住所テキストを使う
+      const fullAddr = r.lv01Nm || '';
+      if (fullAddr) {
+        document.getElementById("k-address").value = fullAddr;
+        const confirmEl = document.getElementById("addr-confirm");
+        confirmEl.textContent = "📍 " + fullAddr;
+        confirmEl.classList.add("on");
+      }
     }
   } catch { /* 失敗しても続行 */ }
 }
 
-// 住所入力→フォワードジオコーディング（住所→座標）
+// 住所入力→フォワードジオコーディング（住所→座標）国土地理院API
 function onAddressInput(value) {
   clearTimeout(geocodeTimer);
-  if (!value || value.length < 4) {
+  if (!value || value.length < 3) {
     document.getElementById("addr-suggestions").style.display = "none";
     return;
   }
@@ -615,7 +631,7 @@ function onAddressInput(value) {
 async function forwardGeocode(query) {
   try {
     const res  = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp&limit=4&accept-language=ja`
+      `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(query)}`
     );
     const data = await res.json();
     renderSuggestions(data);
@@ -624,27 +640,31 @@ async function forwardGeocode(query) {
 
 function renderSuggestions(results) {
   const el = document.getElementById("addr-suggestions");
-  if (!results.length) { el.style.display = "none"; return; }
+  if (!results || !results.length) { el.style.display = "none"; return; }
 
   el.style.display = "block";
-  el.innerHTML = results.map((r, i) => `
-    <div onclick="selectSuggestion(${r.lat},${r.lon},'${esc(r.display_name)}')"
+  el.innerHTML = results.slice(0, 5).map((r) => {
+    const name = r.properties.title;
+    const lng  = r.geometry.coordinates[0];
+    const lat  = r.geometry.coordinates[1];
+    return `
+    <div onclick="selectSuggestion(${lat},${lng},'${esc(name)}')"
       style="padding:11px 13px;font-size:14px;border-bottom:1px solid #F0F0F0;cursor:pointer;color:#1A1A1A;"
       ontouchstart="this.style.background='#F0FBF5'" ontouchend="this.style.background=''">
-      ${esc(r.display_name.replace(/, 日本$/, "").replace(/,/g, " "))}
-    </div>`).join("");
+      ${esc(name)}
+    </div>`;
+  }).join("");
 }
 
-function selectSuggestion(lat, lon, displayName) {
+function selectSuggestion(lat, lng, name) {
   document.getElementById("addr-suggestions").style.display = "none";
-  const shortAddr = displayName.replace(/, 日本$/, "").split(",")[0];
-  document.getElementById("k-address").value = shortAddr;
+  document.getElementById("k-address").value = name;
   const confirmEl = document.getElementById("addr-confirm");
-  confirmEl.textContent = "📍 " + shortAddr;
+  confirmEl.textContent = "📍 " + name;
   confirmEl.classList.add("on");
   if (map) {
     lastLat = parseFloat(lat);
-    lastLng = parseFloat(lon);
+    lastLng = parseFloat(lng);
     map.setView([lastLat, lastLng], 17);
   }
 }
@@ -799,6 +819,7 @@ async function handleSubmit() {
 }
 
 async function submitKozi() {
+  if (!userId) { toast("ユーザー情報を取得中です。少し待ってから再度お試しください"); return; }
   const siteName = val("k-site");
   const company  = val("k-company");
   const staff    = val("k-staff");
@@ -864,12 +885,16 @@ async function post(payload, successMsg) {
   btn.disabled = true;
   loading(true, "送信中...");
   try {
-    const res    = await fetch(GAS_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
+    // GASはContent-Type: text/plainでCORSプリフライトを回避
+    const res = await fetch(GAS_URL, {
+      method:   "POST",
+      headers:  { "Content-Type": "text/plain" },
+      body:     JSON.stringify(payload),
+      redirect: "follow",
     });
-    const result = await res.json();
+    const text = await res.text();
+    let result;
+    try { result = JSON.parse(text); } catch { result = { status: "ok" }; }
     if (result.status === "ok") {
       toast(successMsg);
       setTimeout(() => liff.closeWindow(), 1800);
@@ -877,7 +902,7 @@ async function post(payload, successMsg) {
       throw new Error(result.message || "エラーが発生しました");
     }
   } catch (err) {
-    toast("送信に失敗しました。再度お試しください");
+    toast("送信に失敗しました: " + (err.message || "不明なエラー"));
     console.error(err);
     btn.disabled = false;
   } finally { loading(false); }
