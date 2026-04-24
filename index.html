@@ -898,6 +898,7 @@ async function submitYoyaku() {
 
 async function submitKanryo() {
   if (!selectedKanryo) { toast("現場を選択してください"); return; }
+  if (!confirm(`「${selectedKanryo.siteName}」を完了にしますか？\nこの操作は取り消せません。`)) return;
   await post({
     formType: "kanryo",
     userId,
