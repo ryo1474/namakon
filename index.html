@@ -351,7 +351,7 @@ select{
         <input type="date" id="y-date">
       </div>
       <div class="field">
-        <div class="label">納入時間</div>
+        <div class="label">納入時間 <span class="req">必須</span></div>
         <select id="y-time" onchange="toggleSpecTime()">
           <option value="8:30">8:30</option>
           <option value="10:00">10:00</option>
@@ -863,6 +863,8 @@ async function submitKozi() {
 async function submitYoyaku() {
   if (!selectedSite)               { toast("現場を選択してください"); return; }
   if (!val("y-date"))              { toast("配送希望日を入力してください"); return; }
+  if (!val("y-time"))              { toast("納入時間を選択してください"); return; }
+  if (!val("y-mix-num"))           { toast("配合番号を入力してください"); return; }
   if (!chipVal("chips-vehicle"))   { toast("車種を選択してください"); return; }
   if (!chipVal("chips-method"))    { toast("打設方法を選択してください"); return; }
 
