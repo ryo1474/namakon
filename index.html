@@ -83,6 +83,10 @@ body{
   font-size:10px;background:#FFE9E9;color:#C0392B;
   border-radius:4px;padding:1px 5px;font-weight:700;
 }
+.blue{
+  font-size:10px;background:#82aab5;color:#bfdbdb;
+  border-radius:4px;padding:1px 5px;font-weight:700;
+}
 
 /* ===== インプット ===== */
 input[type=text],input[type=tel],input[type=date],
@@ -316,8 +320,8 @@ select{
       <input type="text" id="k-person" placeholder="例: 山田 太郎">
     </div>
     <div class="field">
-      <div class="label">電話番号 <span class="req">必須</span></div>
-      <input type="tel" id="k-phone" placeholder="090-XXXX-XXXX">
+      <div class="label">電話番号 <span class="req">必須</span><span class="blue">ハイフンなし</span></div>
+      <input type="tel" id="k-phone" placeholder="090XXXXXXXX">
     </div>
   </div>
 
