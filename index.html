@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>生コン受注</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ===== ベース ===== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -127,19 +125,6 @@ select{
 .chip.on{background:#06C755;border-color:#06C755;color:#fff}
 .chip.on-red{background:#E53935;border-color:#E53935;color:#fff}
 
-/* ===== ステッパー ===== */
-.stepper{display:flex;align-items:center;gap:14px}
-.step-btn{
-  width:40px;height:40px;border-radius:50%;
-  border:2px solid #06C755;background:none;
-  color:#06C755;font-size:20px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;flex-shrink:0;
-  -webkit-tap-highlight-color:transparent;
-}
-.step-val{font-size:26px;font-weight:700;min-width:56px;text-align:center}
-.step-unit{font-size:14px;color:#888}
-
 /* ===== 現場カード ===== */
 .site-item{
   display:flex;align-items:center;gap:12px;
@@ -158,7 +143,7 @@ select{
 .site-item.on .site-dot{background:#06C755;border-color:#06C755}
 .site-name{font-size:14px;font-weight:600}
 .site-addr{font-size:12px;color:#888;margin-top:2px}
-  
+
 /* ===== 配合番号(3分割入力) ===== */
 .mix-num-wrap{
   display:flex;
@@ -179,53 +164,10 @@ select{
   color:#888;
   user-select:none;
 }
-  
+
 /* ===== 条件表示 ===== */
 .extra{display:none;margin-top:12px}
 .extra.on{display:block}
-
-/* ===== マップ ===== */
-.map-wrap{
-  border-radius:12px;
-  overflow:hidden;
-  border:1.5px solid #E5E7EA;
-  margin-bottom:10px;
-  position:relative;
-}
-#map{height:220px;width:100%}
-.map-hint{
-  position:absolute;top:8px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,0.6);color:#fff;
-  font-size:12px;padding:5px 12px;border-radius:20px;
-  pointer-events:none;z-index:1000;white-space:nowrap;
-}
-.map-center-pin{
-  position:absolute;
-  top:50%;left:50%;
-  transform:translate(-50%, -100%);
-  font-size:28px;
-  pointer-events:none;
-  z-index:1000;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));
-}
-.btn-myloc{
-  width:100%;padding:11px;
-  border-radius:10px;border:1.5px solid #06C755;
-  background:none;color:#06C755;
-  font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;
-  transition:background .12s;
-  margin-bottom:8px;
-}
-.btn-myloc:active{background:#e8faf0}
-.addr-confirm{
-  font-size:12px;color:#555;
-  background:#F0FBF5;border:1px solid #B2DFC0;
-  border-radius:8px;padding:8px 12px;
-  margin-top:6px;display:none;
-  line-height:1.6;
-}
-.addr-confirm.on{display:block}
 
 /* ===== 送信ボタン ===== */
 .submit-bar{
@@ -263,10 +205,9 @@ select{
   border-radius:50%;
   animation:spin .7s linear infinite;
 }
-.spinner.red{border-top-color:#E53935}
 @keyframes spin{to{transform:rotate(360deg)}}
 .overlay-text{font-size:14px;color:#555;font-weight:500}
-  
+
 /* ===== トースト ===== */
 .toast{
   position:fixed;bottom:90px;
@@ -285,6 +226,7 @@ select{
   text-align:center;padding:24px 0;
   color:#999;font-size:14px;line-height:1.8;
 }
+
 /* ===== 数量入力 ===== */
 .qty-input{
   width:80px;
@@ -303,7 +245,7 @@ select{
 
 <!-- ローディング -->
 <div class="overlay" id="overlay">
-  <div class="spinner" id="spinner"></div>
+  <div class="spinner"></div>
   <div class="overlay-text" id="overlay-text">読み込み中...</div>
 </div>
 
@@ -513,16 +455,8 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbyMc1GHyNYu-YxEGiK5y9D3
 // ============================================================
 let userId      = null;
 let currentTab  = "kozi";
-let qty         = 3.0;
 let selectedSite   = null;
 let selectedKanryo = null;
-
-// マップ関連
-let map        = null;
-let mapInited  = false;
-let geocodeTimer = null;
-let lastLat    = 34.7108;  // 浜松市デフォルト
-let lastLng    = 137.7261;
 
 // ============================================================
 // 初期化
@@ -563,8 +497,6 @@ function switchTab(tab) {
   if (tab === "kozi") {
     btn.textContent = "工事を登録する";
     btn.className   = "btn-submit";
-    // マップ初期化（少し遅延させてDOM確定後に）
-    setTimeout(initMap, 100);
   } else if (tab === "yoyaku") {
     btn.textContent = "予約を送信する";
     btn.className   = "btn-submit";
@@ -577,162 +509,7 @@ function switchTab(tab) {
 }
 
 // ============================================================
-// OpenStreetMapマップ初期化
-// ============================================================
-function initMap() {
-  if (mapInited) return;
-  mapInited = true;
-
-  map = L.map('map', {
-    center: [lastLat, lastLng],
-    zoom: 15,
-    zoomControl: true,
-    attributionControl: false,
-  });
-
-  // 国土地理院標準地図タイル（無料・APIキー不要）
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-  }).addTo(map);
-
-  // マップ移動終了時に逆ジオコーディング
-  let moveTimer = null;
-  map.on('moveend', () => {
-    clearTimeout(moveTimer);
-    moveTimer = setTimeout(onMapMoveEnd, 1000);
-  });
-  map.on('dragstart', () => {
-    document.getElementById('map-center-pin').style.transform = 'translate(-50%, -120%)';
-  });
-  map.on('dragend', () => {
-    document.getElementById('map-center-pin').style.transform = 'translate(-50%, -100%)';
-  });
-
-  // 現在地を取得して初期表示、失敗したら浜松市デフォルト
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        lastLat = pos.coords.latitude;
-        lastLng = pos.coords.longitude;
-        map.setView([lastLat, lastLng], 17);
-        reverseGeocode(lastLat, lastLng);
-      },
-      () => reverseGeocode(lastLat, lastLng) // 拒否された場合はデフォルト座標で住所取得
-    );
-  } else {
-    reverseGeocode(lastLat, lastLng);
-  }
-}
-
-function onMapMoveEnd() {
-  const c = map.getCenter();
-  lastLat = c.lat;
-  lastLng = c.lng;
-  reverseGeocode(c.lat, c.lng);
-}
-
-// 逆ジオコーディング（座標→住所）HeartRails Geo API
-async function reverseGeocode(lat, lng) {
-  try {
-    const res  = await fetch(
-      `https://geoapi.heartrails.com/api/json?method=searchByGeoLocation&x=${lng}&y=${lat}`
-    );
-    const data = await res.json();
-    const loc  = data.response?.location?.[0];
-    if (loc) {
-      const addr = (loc.prefecture || '') + (loc.city || '') + (loc.town || '');
-      if (addr) {
-        document.getElementById("k-address").value = addr;
-        const confirmEl = document.getElementById("addr-confirm");
-        confirmEl.textContent = "📍 " + addr;
-        confirmEl.classList.add("on");
-      }
-    }
-  } catch { /* 失敗しても続行 */ }
-}
-
-// 住所入力→候補表示 HeartRails Express API（番地対応）
-function onAddressInput(value) {
-  clearTimeout(geocodeTimer);
-  if (!value || value.length < 3) {
-    document.getElementById("addr-suggestions").style.display = "none";
-    return;
-  }
-  geocodeTimer = setTimeout(() => forwardGeocode(value), 600);
-}
-
-async function forwardGeocode(query) {
-  try {
-    const res  = await fetch(
-      `https://geoapi.heartrails.com/api/json?method=searchByPostal&postal=${encodeURIComponent(query)}`
-    );
-    // 郵便番号以外はaddress-search APIを使う
-    const isPostal = /^\d{3}-?\d{4}$/.test(query.trim());
-    if (isPostal) {
-      const data = await res.json();
-      const locs = data.response?.location || [];
-      renderSuggestions(locs.map(l => ({
-        name: (l.prefecture || '') + (l.city || '') + (l.town || ''),
-        lat:  parseFloat(l.y),
-        lng:  parseFloat(l.x),
-      })));
-    } else {
-      // 住所テキスト検索は国土地理院を併用
-      const r2   = await fetch(
-        `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(query)}`
-      );
-      const data2 = await r2.json();
-      renderSuggestions((data2 || []).slice(0, 6).map(r => ({
-        name: r.properties.title,
-        lat:  r.geometry.coordinates[1],
-        lng:  r.geometry.coordinates[0],
-      })));
-    }
-  } catch { /* 失敗しても続行 */ }
-}
-
-function renderSuggestions(results) {
-  const el = document.getElementById("addr-suggestions");
-  if (!results || !results.length) { el.style.display = "none"; return; }
-
-  el.style.display = "block";
-  el.innerHTML = results.map((r) => `
-    <div onclick="selectSuggestion(${r.lat},${r.lng},'${esc(r.name)}')"
-      style="padding:11px 13px;font-size:14px;border-bottom:1px solid #F0F0F0;cursor:pointer;color:#1A1A1A;"
-      ontouchstart="this.style.background='#F0FBF5'" ontouchend="this.style.background=''">
-      ${esc(r.name)}
-    </div>`).join("");
-}
-
-function selectSuggestion(lat, lng, name) {
-  document.getElementById("addr-suggestions").style.display = "none";
-  document.getElementById("k-address").value = name;
-  const confirmEl = document.getElementById("addr-confirm");
-  confirmEl.textContent = "📍 " + name;
-  confirmEl.classList.add("on");
-  if (map) {
-    lastLat = parseFloat(lat);
-    lastLng = parseFloat(lng);
-    map.setView([lastLat, lastLng], 17);
-  }
-}
-
-// 現在地に移動
-function goMyLocation() {
-  if (!navigator.geolocation) { toast("位置情報に対応していません"); return; }
-  loading(true, "現在地を取得中...");
-  navigator.geolocation.getCurrentPosition(pos => {
-    loading(false);
-    const { latitude: lat, longitude: lng } = pos.coords;
-    lastLat = lat; lastLng = lng;
-    if (map) map.setView([lat, lng], 17);
-    reverseGeocode(lat, lng);
-    toast("現在地に移動しました");
-  }, () => { loading(false); toast("位置情報の取得を許可してください"); });
-}
-
-// ============================================================
-// 現場一覧読み込み（予約用）
+// 現場一覧読み込み(予約用)
 // ============================================================
 async function loadSites() {
   const el = document.getElementById("site-list");
@@ -858,19 +635,21 @@ function setupChips() {
 }
 
 // ============================================================
-// 数量ステッパー
-// ============================================================
-function changeQty(d) {
-  qty = Math.max(0.5, Math.round((qty + d) * 10) / 10);
-  document.getElementById("qty-val").textContent = qty.toFixed(1);
-}
-
-// ============================================================
 // 指定時間トグル
 // ============================================================
 function toggleSpecTime() {
   const show = document.getElementById("y-time").value === "指定";
   document.getElementById("spec-time-wrap").classList.toggle("on", show);
+}
+
+// ============================================================
+// 配合番号の自動フォーカス移動
+// ============================================================
+function onMixInput(input, nextId) {
+  input.value = input.value.replace(/[^0-9]/g, "");
+  if (input.value.length >= 2 && nextId) {
+    document.getElementById(nextId).focus();
+  }
 }
 
 // ============================================================
@@ -899,7 +678,7 @@ async function submitKozi() {
     formType:   "kozi",
     userId, siteName, company, staff,
     sitePerson: person, phone,
-    address:    "", // 住所はLINEマップで後から登録
+    address:    "",
   }, "登録しました！LINEに戻って位置情報を送ってください📍");
 }
 
@@ -910,7 +689,6 @@ async function submitYoyaku() {
   if (!chipVal("chips-vehicle"))   { toast("車種を選択してください"); return; }
   if (!chipVal("chips-method"))    { toast("打設方法を選択してください"); return; }
 
-  // 配合番号(3分割)
   const mixNum1 = val("y-mix-num-1");
   const mixNum2 = val("y-mix-num-2");
   const mixNum3 = val("y-mix-num-3");
@@ -966,7 +744,6 @@ async function post(payload, successMsg) {
   btn.disabled = true;
   loading(true, "送信中...");
   try {
-    // GASはContent-Type: text/plainでCORSプリフライトを回避
     const res = await fetch(GAS_URL, {
       method:   "POST",
       headers:  { "Content-Type": "text/plain" },
@@ -999,16 +776,6 @@ function esc(s)       { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt
 function loading(show, text = "読み込み中...") {
   document.getElementById("overlay").classList.toggle("on", show);
   document.getElementById("overlay-text").textContent = text;
-}
-
-  // 配合番号の自動フォーカス移動
-function onMixInput(input, nextId) {
-  // 数字以外を除去
-  input.value = input.value.replace(/[^0-9]/g, "");
-  // 2桁入ったら次の枠へジャンプ
-  if (input.value.length >= 2 && nextId) {
-    document.getElementById(nextId).focus();
-  }
 }
 
 function toast(msg) {
