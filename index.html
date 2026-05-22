@@ -514,33 +514,22 @@ select{
 </div>
 
 <script>
-// ============================================================
-// 設定
-// ============================================================
 const LIFF_ID = "2009848104-9rxJkZkA";
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyMc1GHyNYu-YxEGiK5y9D3qCHlB8_f50o1XBdmc8rqa24G3_n_GN4hpK4lQ2BGKXMI/exec";
 
-// ============================================================
-// 状態
-// ============================================================
 let userId      = null;
 let currentTab  = "kozi";
 let selectedSite   = null;
 let selectedKanryo = null;
 
-// ============================================================
-// 初期化
-// ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
   loading(true);
   try {
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
-
     const profile = await liff.getProfile();
     userId = profile.userId;
     document.getElementById("header-sub").textContent = "株式会社 丸紅";
-
     const mode = new URLSearchParams(location.search).get("mode") || "kozi";
     setupChips();
     loadStaffs();
@@ -553,16 +542,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ============================================================
-// タブ切り替え
-// ============================================================
 function switchTab(tab) {
   currentTab = tab;
   ["kozi","yoyaku","kanryo"].forEach(t => {
     document.getElementById("screen-" + t).classList.toggle("on", t === tab);
     document.getElementById("tab-"    + t).classList.toggle("on", t === tab);
   });
-
   const btn = document.getElementById("btn-submit");
   if (tab === "kozi") {
     btn.textContent = "工事を登録する";
@@ -578,9 +563,6 @@ function switchTab(tab) {
   }
 }
 
-// ============================================================
-// 現場一覧読み込み(予約用)
-// ============================================================
 async function loadSites() {
   const el = document.getElementById("site-list");
   el.innerHTML = '<div class="empty">読み込み中...</div>';
@@ -591,9 +573,7 @@ async function loadSites() {
       renderSites(data.sites || []);
       return;
     } catch {
-      if (i === 2) {
-        el.innerHTML = '<div class="empty">現場の取得に失敗しました。<br>画面を閉じて再度お試しください。</div>';
-      }
+      if (i === 2) el.innerHTML = '<div class="empty">現場の取得に失敗しました。<br>画面を閉じて再度お試しください。</div>';
       await new Promise(r => setTimeout(r, 1000));
     }
   }
@@ -622,9 +602,6 @@ function selectSite(el, i) {
   selectedSite = document.getElementById("site-list")._data[i];
 }
 
-// ============================================================
-// 工事完了一覧読み込み
-// ============================================================
 async function loadKanryoList() {
   const el = document.getElementById("kanryo-list");
   el.innerHTML = '<div class="empty">読み込み中...</div>';
@@ -635,9 +612,7 @@ async function loadKanryoList() {
       renderKanryoList(data.sites || []);
       return;
     } catch {
-      if (i === 2) {
-        el.innerHTML = '<div class="empty">取得に失敗しました。<br>画面を閉じて再度お試しください。</div>';
-      }
+      if (i === 2) el.innerHTML = '<div class="empty">取得に失敗しました。<br>画面を閉じて再度お試しください。</div>';
       await new Promise(r => setTimeout(r, 1000));
     }
   }
@@ -666,9 +641,6 @@ function selectKanryo(el, i) {
   selectedKanryo = document.getElementById("kanryo-list")._data[i];
 }
 
-// ============================================================
-// 担当者読み込み
-// ============================================================
 async function loadStaffs() {
   try {
     const res  = await fetch(`${GAS_URL}?action=getStaffs`);
@@ -679,12 +651,9 @@ async function loadStaffs() {
       opt.value = opt.textContent = name;
       sel.appendChild(opt);
     });
-  } catch { /* 失敗しても続行 */ }
+  } catch {}
 }
 
-// ============================================================
-// チップ設定
-// ============================================================
 function setupChips() {
   document.querySelectorAll(".chips").forEach(group => {
     group.querySelectorAll(".chip").forEach(chip => {
@@ -704,17 +673,11 @@ function setupChips() {
   });
 }
 
-// ============================================================
-// 指定時間トグル
-// ============================================================
 function toggleSpecTime() {
   const show = document.getElementById("y-time").value === "指定";
   document.getElementById("spec-time-wrap").classList.toggle("on", show);
 }
 
-// ============================================================
-// 配合番号の自動フォーカス移動
-// ============================================================
 function onMixInput(input, nextId) {
   input.value = input.value.replace(/[^0-9]/g, "");
   if (input.value.length >= 2 && nextId) {
@@ -722,9 +685,6 @@ function onMixInput(input, nextId) {
   }
 }
 
-// ============================================================
-// カスタム確認ダイアログ
-// ============================================================
 let _confirmResolve = null;
 function customConfirm(message, okLabel = "OK", okColor = "#E53935") {
   return new Promise(resolve => {
@@ -744,9 +704,6 @@ function closeConfirm(result) {
   }
 }
 
-// ============================================================
-// 送信
-// ============================================================
 async function handleSubmit() {
   if (currentTab === "kozi")    await submitKozi();
   if (currentTab === "yoyaku")  await submitYoyaku();
@@ -765,7 +722,6 @@ async function submitKozi() {
   if (!staff)    { toast("担当者を選択してください"); return; }
   if (!person)   { toast("現場担当者名を入力してください"); return; }
   if (!phone)    { toast("電話番号を入力してください"); return; }
-
   await post({
     formType:   "kozi",
     userId, siteName, company, staff,
@@ -796,6 +752,9 @@ async function submitYoyaku() {
   if (!mixType)    { toast("配合種別を選択してください"); return; }
   if (qtyVal <= 0) { toast("数量を入力してください"); return; }
 
+  const testValue  = chipVal("chips-test") || "なし";
+  const isTestNone = testValue === "なし";
+
   await post({
     formType:    "yoyaku",
     userId,
@@ -813,9 +772,9 @@ async function submitYoyaku() {
     mixType:     mixType === "その他" ? mixSpec : mixType,
     quantity:    qtyVal,
     method:      chipVal("chips-method"),
-    test:        chipVal("chips-test") || "なし",
-    testCount:   val("y-testcount"),
-    cantab:      chipVal("chips-cantab") || "あり",
+    test:        testValue,
+    testCount:   isTestNone ? "" : val("y-testcount"),
+    cantab:      isTestNone ? "" : (chipVal("chips-cantab") || ""),
     remarks:     val("y-remarks"),
   }, "予約を受け付けました!");
 }
@@ -862,9 +821,6 @@ async function post(payload, successMsg) {
   } finally { loading(false); }
 }
 
-// ============================================================
-// ユーティリティ
-// ============================================================
 function val(id)      { return document.getElementById(id)?.value?.trim() || ""; }
 function chipVal(id)  { return document.querySelector(`#${id} .chip.on`)?.dataset?.val || null; }
 function esc(s)       { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
