@@ -172,13 +172,13 @@ body.is-pickup .show-on-pickup{display:block}
     <div class="card-title">受け取り方法</div>
     <div class="toggle-bar">
       <button type="button" class="toggle-btn on" id="toggle-delivery" onclick="setPickupType('配送')">配送</button>
-      <button type="button" class="toggle-btn" id="toggle-pickup" onclick="setPickupType('引取り')">引取り</button>
+      <button type="button" class="toggle-btn" id="toggle-pickup" onclick="setPickupType('引き取り')">引き取り</button>
     </div>
     <div class="row2">
       <div class="field">
         <div class="label">
           <span class="hide-on-pickup">配送希望日</span>
-          <span class="show-on-pickup">引取希望日</span>
+          <span class="show-on-pickup">引き取り希望日</span>
           <span class="req">必須</span>
         </div>
         <input type="date" id="y-date">
@@ -186,7 +186,7 @@ body.is-pickup .show-on-pickup{display:block}
       <div class="field">
         <div class="label">
           <span class="hide-on-pickup">納入時間</span>
-          <span class="show-on-pickup">引取時間</span>
+          <span class="show-on-pickup">引き取り時間</span>
           <span class="req">必須</span>
         </div>
         <select id="y-time" onchange="toggleSpecTime()">
@@ -361,11 +361,11 @@ function switchTab(tab) {
 function setPickupType(type) {
   pickupType = type;
   document.getElementById("toggle-delivery").classList.toggle("on", type === "配送");
-  document.getElementById("toggle-pickup").classList.toggle("on", type === "引取り");
-  document.body.classList.toggle("is-pickup", type === "引取り");
+  document.getElementById("toggle-pickup").classList.toggle("on", type === "引き取り");
+  document.body.classList.toggle("is-pickup", type === "引き取り");
   
   const remarks = document.getElementById("y-remarks");
-  if (type === "引取り") {
+  if (type === "引き取り") {
     remarks.placeholder = "特記事項や指定のプラント会社がありましたらご記入ください";
   } else {
     remarks.placeholder = "特記事項があればご記入ください";
@@ -542,15 +542,15 @@ async function submitKozi() {
 async function submitYoyaku() {
   if (!selectedSite) { toast("現場を選択してください"); return; }
   if (!val("y-date")) {
-    toast(pickupType === "引取り" ? "引取希望日を入力してください" : "配送希望日を入力してください");
+    toast(pickupType === "引き取り" ? "引き取り希望日を入力してください" : "配送希望日を入力してください");
     return;
   }
   if (!val("y-time")) {
-    toast(pickupType === "引取り" ? "引取時間を選択してください" : "納入時間を選択してください");
+    toast(pickupType === "引き取り" ? "引き取り時間を選択してください" : "納入時間を選択してください");
     return;
   }
   
-  const isPickup = pickupType === "引取り";
+  const isPickup = pickupType === "引き取り";
   
   if (!isPickup) {
     if (!chipVal("chips-vehicle"))   { toast("車種を選択してください"); return; }
