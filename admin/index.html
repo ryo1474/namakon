@@ -35,7 +35,6 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .site-name{font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:2px}
 .company{font-size:11px;color:#666}
 
-/* ステータスバッジ(タップ可) */
 .badge-status{font-size:10px;padding:4px 9px;border-radius:11px;font-weight:600;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:3px;border:0.5px solid transparent;-webkit-tap-highlight-color:transparent}
 .badge-status:active{opacity:.8}
 .badge-status.yoyaku{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
@@ -47,7 +46,6 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .badge-hikitoiri{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;background:#EEEDFE;color:#534AB7;margin-left:4px;border:0.5px solid #C0BAE0}
 .badge-chev{font-size:9px;opacity:0.7}
 
-/* ステータス変更ポップアップ */
 .status-popup{position:absolute;top:38px;right:12px;background:#fff;border:1px solid #DDD;border-radius:8px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:20;min-width:120px;display:none}
 .status-popup.on{display:block}
 .status-item{padding:8px 12px;font-size:12px;border-radius:5px;cursor:pointer;color:#333;-webkit-tap-highlight-color:transparent}
@@ -57,16 +55,14 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .info-row{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;align-items:center}
 .info-item{font-size:11px;color:#666;display:flex;align-items:center;gap:3px}
 
-/* 対応者プルダウン(コンパクト) */
 .taiou-mini{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
 .taiou-mini.set{background:#E6F1FB;color:#1976D2;border:0.5px solid #1976D2}
 .taiou-mini.empty{background:#F7F8FA;color:#AAA;border:0.5px solid #E0E0E0}
 .taiou-mini:active{opacity:.8}
 
-/* 対応者ポップアップ */
-.taiou-popup{position:absolute;top:24px;right:0;background:#fff;border:1px solid #DDD;border-radius:8px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:20;min-width:110px;display:none}
+.taiou-popup{position:absolute;top:24px;right:0;background:#fff;border:1px solid #DDD;border-radius:8px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:20;min-width:120px;display:none;max-height:240px;overflow-y:auto}
 .taiou-popup.on{display:block}
-.taiou-item{padding:7px 12px;font-size:12px;border-radius:5px;cursor:pointer;color:#333;-webkit-tap-highlight-color:transparent}
+.taiou-item{padding:7px 12px;font-size:12px;border-radius:5px;cursor:pointer;color:#333;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 .taiou-item:hover,.taiou-item:active{background:#F2F3F5}
 .taiou-item.current{font-weight:600;color:#1976D2;background:#E6F1FB}
 
@@ -79,7 +75,6 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .detail-val{color:#1A1A1A;font-weight:500}
 .remarks{margin-top:4px;padding:8px 10px;background:#F7F8FA;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-wrap}
 
-/* メモ欄 */
 .memo-wrap{margin-top:4px}
 .memo-input{width:100%;min-height:60px;padding:8px 10px;background:#FFFBE6;border:1.5px solid #F5D67A;border-radius:6px;font-size:12px;line-height:1.6;font-family:inherit;resize:vertical;color:#1A1A1A;outline:none}
 .memo-input:focus{border-color:#F5C842;background:#FFF8D6}
@@ -100,12 +95,10 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .spinner{display:inline-block;width:32px;height:32px;border:3px solid #E5E7EA;border-top-color:#06C755;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* トースト */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:10px 22px;border-radius:24px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;z-index:1000}
 .toast.on{opacity:1}
 .toast.error{background:#C0392B}
 
-/* 確認モーダル */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.on{display:flex}
 .modal{background:#fff;border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
@@ -116,11 +109,21 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .modal-btn:active{opacity:.85}
 .modal-btn-cancel{background:#F2F3F5;color:#555}
 .modal-btn-ok{background:#06C755;color:#fff}
+
+/* 全画面ローディング */
+.full-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,0.7);z-index:1200;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.full-overlay.on{display:flex}
+.full-overlay-text{font-size:14px;color:#555;font-weight:500}
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
+
+<div class="full-overlay" id="full-overlay">
+  <div class="spinner"></div>
+  <div class="full-overlay-text" id="full-overlay-text">処理中...</div>
+</div>
 
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
@@ -179,7 +182,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyMc1GHyNYu-YxEGiK5y9D3qCHlB8_f50o1XBdmc8rqa24G3_n_GN4hpK4lQ2BGKXMI/exec";
-const TAIOU_LIST = ["松浦", "村上", "小長谷"];
+const TAIOU_LIST = ["松浦", "村上", "小長谷", "川井大輔", "益田桂志", "鈴木悠仁", "青島秀和", "渡邊賢矢"];
 const STATUS_LIST = ["予約済", "確認中", "確定済", "連絡済", "変更中", "キャンセル"];
 
 let allYoyaku = [];
@@ -187,14 +190,12 @@ let currentFilter = "all";
 let highlightReceipt = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  // URLパラメータ?r=受付番号 でハイライト
   const params = new URLSearchParams(location.search);
   highlightReceipt = params.get("r");
   
   setupFilter();
   loadList();
   
-  // ポップアップ外クリックで閉じる
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".badge-status") && !e.target.closest(".status-popup")) {
       document.querySelectorAll(".status-popup").forEach(p => p.classList.remove("on"));
@@ -226,7 +227,6 @@ async function loadList() {
     allYoyaku = (data.yoyaku || []).reverse();
     render();
     
-    // 受付番号指定があればスクロール
     if (highlightReceipt) {
       setTimeout(() => {
         const idx = allYoyaku.findIndex(y => y.receipt === highlightReceipt);
@@ -268,7 +268,6 @@ function render() {
   }
   
   list.innerHTML = filtered.map((y, i) => {
-    // allYoyaku内のインデックスを取得
     const origIdx = allYoyaku.indexOf(y);
     return buildCard(y, origIdx);
   }).join("");
@@ -279,13 +278,13 @@ function buildCard(y, idx) {
   const isDone = y.status === "連絡済" || y.status === "キャンセル";
   const pickup = isPickup(y);
   const dateStr = formatDate(y.deliveryDate);
+  const timeStr = formatTime(y.deliveryTime);
+  const specTimeStr = formatTime(y.specTime);
   
-  // ステータスのプルダウンHTML
   const statusOptions = STATUS_LIST.map(s => 
     `<div class="status-item ${s === y.status ? 'current' : ''}" onclick="changeStatus(${idx}, '${s}', event)">${s}</div>`
   ).join("");
   
-  // 対応者プルダウンHTML
   const taiouOptions = `
     <div class="taiou-item ${!y.taiousha ? 'current' : ''}" onclick="changeTaiousha(${idx}, '', event)">未設定</div>
     ${TAIOU_LIST.map(t =>
@@ -315,8 +314,8 @@ function buildCard(y, idx) {
       
       <div class="info-row">
         <div class="info-item">📅 ${esc(dateStr)}</div>
-        <div class="info-item">🕐 ${esc(y.deliveryTime || '')}${y.specTime ? ' ' + esc(y.specTime) : ''}</div>
-        ${!pickup && y.vehicle ? `<div class="info-item">🚚 ${esc(y.vehicle)}</div>` : ''}
+        <div class="info-item">🕐 ${esc(timeStr)}${specTimeStr ? ' ' + esc(specTimeStr) : ''}</div>
+        ${!pickup && y.vehicle ? `<div class="info-item">🚛 ${esc(y.vehicle)}</div>` : ''}
         ${pickup && y.shape ? `<div class="info-item">🧱 ${esc(y.shape)}</div>` : ''}
         <div class="info-item">💧 ${esc(y.quantity || '')} m³</div>
         <div class="info-item">👤 ${esc(y.staff || '')}</div>
@@ -369,7 +368,7 @@ function buildCard(y, idx) {
           <textarea class="memo-input" id="memo-${idx}" placeholder="社内向けのメモを入力(取引先には表示されません)">${esc(y.memo || '')}</textarea>
           <div class="memo-bottom">
             <div class="memo-status" id="memo-status-${idx}"></div>
-            <button class="btn-save" onclick="saveMemo(${idx})">💾 保存</button>
+            <button class="btn-save" onclick="saveMemo(${idx})">💾 社内メモを保存</button>
           </div>
         </div>
       </div>
@@ -433,6 +432,7 @@ async function changeStatus(idx, newStatus, e) {
   document.getElementById(`status-popup-${idx}`).classList.remove("on");
   if (!ok) return;
   
+  showLoading("ステータスを更新中...");
   try {
     const res = await fetch(GAS_URL, {
       method: "POST",
@@ -454,6 +454,8 @@ async function changeStatus(idx, newStatus, e) {
   } catch (err) {
     toast("通信エラー", true);
     console.error(err);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -466,6 +468,7 @@ async function changeTaiousha(idx, newTaiou, e) {
   }
   document.getElementById(`taiou-popup-${idx}`).classList.remove("on");
   
+  showLoading("対応者を更新中...");
   try {
     const res = await fetch(GAS_URL, {
       method: "POST",
@@ -487,6 +490,8 @@ async function changeTaiousha(idx, newTaiou, e) {
   } catch (err) {
     toast("通信エラー", true);
     console.error(err);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -495,6 +500,7 @@ async function saveMemo(idx) {
   const memo = document.getElementById(`memo-${idx}`).value;
   const statusEl = document.getElementById(`memo-status-${idx}`);
   
+  showLoading("社内メモを保存中...");
   statusEl.textContent = "💭 保存中...";
   statusEl.className = "memo-status";
   
@@ -515,6 +521,7 @@ async function saveMemo(idx) {
       const timeStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       statusEl.textContent = `✓ ${timeStr} に保存`;
       statusEl.className = "memo-status saved";
+      toast("社内メモを保存しました");
     } else {
       statusEl.textContent = "❌ 保存失敗";
       toast("保存失敗: " + (result.message || "不明"), true);
@@ -523,7 +530,18 @@ async function saveMemo(idx) {
     statusEl.textContent = "❌ 保存失敗";
     toast("通信エラー", true);
     console.error(err);
+  } finally {
+    hideLoading();
   }
+}
+
+function showLoading(text) {
+  document.getElementById("full-overlay-text").textContent = text || "処理中...";
+  document.getElementById("full-overlay").classList.add("on");
+}
+
+function hideLoading() {
+  document.getElementById("full-overlay").classList.remove("on");
 }
 
 let _confirmResolve = null;
@@ -568,6 +586,24 @@ function formatDate(d) {
     return `${date.getMonth()+1}/${date.getDate()}`;
   } catch {
     return String(d);
+  }
+}
+
+// 時間表示を「HH:MM」に整形
+// 入力例:"10:00" / "8:30" / "1899-12-30T01:00:00.000Z" / Dateオブジェクト
+function formatTime(t) {
+  if (!t) return "";
+  // すでに「HH:MM」形式ならそのまま
+  if (typeof t === "string" && /^\d{1,2}:\d{2}/.test(t)) return t;
+  // ISO形式やDateオブジェクトの場合
+  try {
+    const date = new Date(t);
+    if (isNaN(date.getTime())) return String(t);
+    const h = date.getHours();
+    const m = String(date.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  } catch {
+    return String(t);
   }
 }
 
