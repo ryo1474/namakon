@@ -217,7 +217,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyMc1GHyNYu-YxEGiK5y9D3qCHlB8_f50o1XBdmc8rqa24G3_n_GN4hpK4lQ2BGKXMI/exec";
 const TAIOU_LIST = ["松浦", "村上", "小長谷", "川井大輔", "益田桂志", "鈴木悠仁", "青島秀和", "渡邊賢矢"];
 // 新ステータス + 旧ステータス互換用
-const STATUS_LIST = ["", "対応中", "顧客連絡済", "キャンセル"];
+const STATUS_LIST = ["未対応", "対応中", "顧客連絡済", "キャンセル"];
 const OLD_STATUS_LIST = ["予約済", "確認中", "確定済", "連絡済", "変更中"];
 
 let allYoyaku = [];
@@ -302,15 +302,15 @@ function render() {
   if (currentFilter === "引取り") {
     filtered = allYoyaku.filter(y => isPickup(y));
   } else if (currentFilter === "未対応") {
-    // 空白・予約済(旧)・確認中(旧)・変更中(旧) = 未対応扱い
-    filtered = allYoyaku.filter(y => !y.status || y.status === "予約済" || y.status === "確認中" || y.status === "変更中");
+    // 未対応・予約済(旧)・確認中(旧)・変更中(旧) = 未対応扱い
+    filtered = allYoyaku.filter(y => !y.status || y.status === "未対応" || y.status === "予約済" || y.status === "確認中" || y.status === "変更中");
   } else if (currentFilter !== "all") {
     filtered = allYoyaku.filter(y => y.status === currentFilter);
   }
   
   document.getElementById("stat-total").innerHTML = `${allYoyaku.length}<span>件</span>`;
   const mikakutei = allYoyaku.filter(y => 
-    !y.status || y.status === "対応中" || y.status === "予約済" || y.status === "確認中" || y.status === "変更中"
+    !y.status || y.status === "未対応" || y.status === "対応中" || y.status === "予約済" || y.status === "確認中" || y.status === "変更中"
   ).length;
   document.getElementById("stat-mikakutei").innerHTML = `${mikakutei}<span>件</span>`;
   
@@ -332,7 +332,7 @@ function buildCard(y, idx) {
   const dateStr = formatDate(y.deliveryDate);
   const timeStr = formatTime(y.deliveryTime);
   const specTimeStr = formatTime(y.specTime);
-  const statusLabel = y.status || "未設定";
+  const statusLabel = y.status || "未対応";
   
   return `
     <div class="card ${isDone ? 'done' : ''}" id="card-${idx}">
@@ -446,8 +446,7 @@ function openStatusModal(idx) {
   let html = "";
   // 新ステータス
   STATUS_LIST.forEach(s => {
-    const label = s === "" ? "未設定" : s;
-    html += `<div class="modal-item ${s === y.status ? 'current' : ''}" onclick="selectStatus('${s}')">${label}</div>`;
+    html += `<div class="modal-item ${s === y.status ? 'current' : ''}" onclick="selectStatus('${s}')">${s}</div>`;
   });
   // 旧ステータス(現在のステータスが旧の場合のみ表示)
   if (OLD_STATUS_LIST.includes(y.status)) {
@@ -473,13 +472,9 @@ async function selectStatus(newStatus) {
   if (y.status === newStatus) return;
   
   let confirmMsg;
-  if (newStatus === "") {
-    confirmMsg = `ステータスを「未設定」に戻しますか?`;
-  } else {
-    confirmMsg = `ステータスを「${newStatus}」に変更しますか?`;
-    if (newStatus === "顧客連絡済") {
-      confirmMsg = `ステータスを「顧客連絡済」に変更しますか?\n\n担当者(${y.staff})にLINE通知が送信されます。`;
-    }
+  confirmMsg = `ステータスを「${newStatus}」に変更しますか?`;
+  if (newStatus === "顧客連絡済") {
+    confirmMsg = `ステータスを「顧客連絡済」に変更しますか?\n\n担当者(${y.staff})にLINE通知が送信されます。`;
   }
   
   const ok = await customConfirm(confirmMsg);
@@ -499,7 +494,7 @@ async function selectStatus(newStatus) {
     const result = await res.json();
     if (result.status === "ok") {
       allYoyaku[idx].status = newStatus;
-      toast(newStatus === "顧客連絡済" ? "顧客連絡済に変更し、担当者へ通知しました" : (newStatus === "" ? "未設定に戻しました" : `「${newStatus}」に変更しました`));
+      toast(newStatus === "顧客連絡済" ? "顧客連絡済に変更し、担当者へ通知しました" : `「${newStatus}」に変更しました`);
       render();
     } else {
       toast("更新失敗: " + (result.message || "不明"), true);
@@ -698,7 +693,7 @@ function closeConfirm(result) {
 
 function statusToClass(status) {
   const map = {
-    "":         "empty",
+    "未対応":    "empty",
     "対応中":    "taiouChu",
     "顧客連絡済": "renraku",
     "キャンセル": "cancel",
